@@ -28,6 +28,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable()) // Desabilita a proteção CSRF que não é necessária para uma API stateless
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable())) 
+
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Garante que a sessão não armazene estado
                 
                 .authorizeHttpRequests(auth -> auth

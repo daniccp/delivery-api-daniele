@@ -2,6 +2,7 @@ package com.deliverytech.controller;
 
 import com.deliverytech.dto.request.ProdutoRequest;
 import com.deliverytech.dto.response.ProdutoResponse;
+import com.deliverytech.exception.EntityNotFoundException;
 import com.deliverytech.model.Produto;
 import com.deliverytech.model.Restaurante;
 import com.deliverytech.service.ProdutoService;
@@ -11,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,7 +29,7 @@ public class ProdutoController {
     @PostMapping
     public ResponseEntity<ProdutoResponse> cadastrar(@Valid @RequestBody ProdutoRequest request) {
         Restaurante restaurante = restauranteService.buscarPorId(request.getRestauranteId())
-                .orElseThrow(() -> new RuntimeException("Restaurante não encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Restaurante", request.getRestauranteId()));
 
         Produto produto = Produto.builder()
                 .nome(request.getNome())
@@ -37,12 +41,24 @@ public class ProdutoController {
                 .build();
 
         Produto salvo = produtoService.cadastrar(produto);
-        return ResponseEntity.ok(new ProdutoResponse(
+
+        // Retorna 201 Created com a localização do novo recurso
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(salvo.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(new ProdutoResponse(
                 salvo.getId(), salvo.getNome(), salvo.getCategoria(), salvo.getDescricao(), salvo.getPreco(), salvo.getDisponivel()));
     }
 
     @GetMapping("/restaurante/{restauranteId}")
     public List<ProdutoResponse> listarPorRestaurante(@PathVariable Long restauranteId) {
+        // Valida se o restaurante existe antes de listar os produtos
+        if (restauranteService.buscarPorId(restauranteId).isEmpty()) {
+            throw new EntityNotFoundException("Restaurante", restauranteId);
+        }
+
         return produtoService.buscarPorRestaurante(restauranteId).stream()
                 .map(p -> new ProdutoResponse(p.getId(), p.getNome(), p.getCategoria(), p.getDescricao(), p.getPreco(), p.getDisponivel()))
                 .collect(Collectors.toList());

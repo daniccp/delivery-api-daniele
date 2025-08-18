@@ -2,13 +2,19 @@ package com.deliverytech.controller;
 
 import com.deliverytech.dto.request.RestauranteRequest;
 import com.deliverytech.dto.response.RestauranteResponse;
+import com.deliverytech.exception.EntityNotFoundException;
 import com.deliverytech.model.Restaurante;
 import com.deliverytech.service.RestauranteService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,16 +36,22 @@ public class RestauranteController {
                 .ativo(true)
                 .build();
         Restaurante salvo = restauranteService.cadastrar(restaurante);
-        return ResponseEntity.ok(new RestauranteResponse(
+
+        // Retorna 201 Created com a localização do novo recurso
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(salvo.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(new RestauranteResponse(
                 salvo.getId(), salvo.getNome(), salvo.getCategoria(), salvo.getTelefone(),
                 salvo.getTaxaEntrega(), salvo.getTempoEntregaMinutos(), salvo.getAtivo()));
     }
 
     @GetMapping
-    public List<RestauranteResponse> listarTodos() {
-        return restauranteService.listarTodos().stream()
-                .map(r -> new RestauranteResponse(r.getId(), r.getNome(), r.getCategoria(), r.getTelefone(), r.getTaxaEntrega(), r.getTempoEntregaMinutos(), r.getAtivo()))
-                .collect(Collectors.toList());
+    public Page<RestauranteResponse> listarTodos(Pageable pageable) {
+        Page<Restaurante> restaurantesPaginados = restauranteService.listarTodos(pageable);
+        return restaurantesPaginados.map(r -> new RestauranteResponse(r.getId(), r.getNome(), r.getCategoria(), r.getTelefone(), r.getTaxaEntrega(), r.getTempoEntregaMinutos(), r.getAtivo()));
     }
 
     @GetMapping("/{id}")
@@ -47,7 +59,7 @@ public class RestauranteController {
         return restauranteService.buscarPorId(id)
                 .map(r -> new RestauranteResponse(r.getId(), r.getNome(), r.getCategoria(), r.getTelefone(), r.getTaxaEntrega(), r.getTempoEntregaMinutos(), r.getAtivo()))
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new EntityNotFoundException("Restaurante", id));
     }
 
     @GetMapping("/categoria/{categoria}")
