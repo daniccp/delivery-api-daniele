@@ -66,7 +66,7 @@ cd delivery-api
 ```bash
 docker-compose up --build
 ```
-
+A API estará disponível em http://localhost:8080.
 ---
 
 ## 🧪 Endpoints de Teste
@@ -76,11 +76,47 @@ docker-compose up --build
 - `GET /api/clientes`
 - `POST /api/pedidos`
 
----
+## 📑 Guia de Endpoints (Exemplos)
 
+### 🔐 Autenticação e Registro
+`POST /api/auth/register`
+```json
+{
+  "nome": "João Silva",
+  "email": "joao@email.com",
+  "senha": "password123",
+  "perfil": "CLIENTE"
+}
+POST /api/auth/login -> Retorna o access_token
+
+JSON
+{
+  "email": "joao@email.com",
+  "senha": "password123"
+}
+
+🍔 Pedidos
+POST /api/pedidos (Requer Header: Authorization: Bearer <TOKEN>)
+
+JSON
+{
+  "restauranteId": 1,
+  "itens": [
+    { "produtoId": 10, "quantidade": 2 },
+    { "produtoId": 15, "quantidade": 1 }
+  ],
+  "formaPagamento": "CARTAO_CREDITO"
+}
+---
+Monitoramento (Actuator)
+Health Check: GET /actuator/health
+
+Métricas: GET /actuator/metrics
 
 ---
+A API estará disponível em http://localhost:8080.
+
 
 ## 📬 Contato
 
-[Seu Email] - [LinkedIn] - [GitHub]
+[danicastrodc@yahoo.com.br] - [LinkedIn] - [GitHub]

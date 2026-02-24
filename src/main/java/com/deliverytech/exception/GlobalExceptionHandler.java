@@ -1,77 +1,52 @@
 package com.deliverytech.exception;
-
+import jakarta.persistence.EntityNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import com.deliverytech.exception.ErrorResponse;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> details = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            details.put(error.getField(), error.getDefaultMessage());
-        });
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                details.put(error.getField(), error.getDefaultMessage()));
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "Erro de validação",
-                "Campos inválidos na requisição",
-                request.getDescription(false).replace("uri=", ""),
-                details
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Erro de Validação", "Campos inválidos", request, details);
     }
 
-    /**
-     * Captura exceções do tipo EntityNotFoundException e retorna uma resposta HTTP 404 (Not Found).
-     */
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                "Recurso não encontrado",
-                ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException ex, WebRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Não Encontrado", ex.getMessage(), request, null);
     }
 
-    /**
-     * Captura exceções do tipo ConflictException e retorna uma resposta HTTP 409 (Conflict).
-     */
-    @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                "Conflito de dados",
-                ex.getMessage(),
-                request.getDescription(false).replace("uri=", "")
-        );
-        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
-    }
-
-    /**
-     * Captura exceções genéricas (erros não esperados) e retorna uma resposta HTTP 500 (Internal Server Error).
-     * Isso garante que a API nunca exponha stack traces para o cliente.
-     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Erro interno do servidor",
-                "Ocorreu um erro inesperado. Tente novamente mais tarde.",
-                request.getDescription(false).replace("uri=", "")
-        );
-        // Opcional: Logar a exceção real para depuração
-        // log.error("Erro inesperado:", ex);
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, WebRequest request) {
+        log.error("Erro crítico no sistema: ", ex); // Loga o erro real para o desenvolvedor
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Erro no Servidor", "Algo deu errado no nosso restaurante. Tente novamente.", request, null);
+    }
+
+    // Método auxiliar para não repetir código (DRY)
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String title, String message, WebRequest request, Map<String, String> details) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(status.value())
+                .error(title)
+                .message(message)
+                .path(request.getDescription(false).replace("uri=", ""))
+                .details(details)
+                .build();
+        return new ResponseEntity<>(error, status);
     }
 }

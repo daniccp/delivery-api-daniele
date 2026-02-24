@@ -6,7 +6,10 @@ import com.deliverytech.model.Role;
 import com.deliverytech.model.Usuario;
 import com.deliverytech.repository.UsuarioRepository;
 import com.deliverytech.security.JwtUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,11 +17,11 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Clientes", description = "Endpoints para gerenciamento e login de usuários")
 public class AuthController {
 
     private final UsuarioRepository usuarioRepository;
@@ -26,6 +29,8 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
+
+    @Operation(summary = "Registra um novo usuário", description = "Realiza o cadastro de um novo usuário (cliente/outros perfis) e retorna um token JWT para autenticação imediata.")
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
         if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -45,7 +50,7 @@ public class AuthController {
         String token = jwtUtil.generateToken(User.withUsername(usuario.getEmail()).password(usuario.getSenha()).authorities("ROLE_" + usuario.getRole().name()).build(), usuario);
         return ResponseEntity.ok(token);
     }
-
+    @Operation(summary = "Autentica um usuário", description = "Realiza a autenticação do usuário via credenciais (e-mail e senha) e fornece um token JWT para autorização em requisições subsequentes")
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getSenha()));

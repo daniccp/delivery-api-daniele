@@ -10,6 +10,8 @@ import com.deliverytech.service.ClienteService;
 import com.deliverytech.service.PedidoService;
 import com.deliverytech.service.ProdutoService;
 import com.deliverytech.service.RestauranteService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/pedidos")
 @RequiredArgsConstructor
+@Tag(name = "Pedidos", description = "Endpoints para gerenciamento de pedidos")
 public class PedidoController {
 
     private final PedidoService pedidoService;
@@ -32,6 +35,7 @@ public class PedidoController {
     private final RestauranteService restauranteService;
     private final ProdutoService produtoService;
 
+    @Operation(summary = "Cria um novo pedido", description = "Cria um novo pedido para um cliente em um restaurante específico.")
     @PostMapping
     public ResponseEntity<PedidoResponse> criar(@Valid @RequestBody PedidoRequest request) {
         Cliente cliente = clienteService.buscarPorId(request.getClienteId())
